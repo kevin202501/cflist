@@ -1,0 +1,43 @@
+name: DNS Resolve
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - ipv4result.txt
+      - ipv6result.txt
+  schedule:
+    - cron: '*/60 * * * *'
+  workflow_dispatch:
+
+env:
+  DOMAIN: ${{ vars.DOMAIN || 'youxuan.cf.090227.xyz' }}
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install dnspython
+
+      - name: Run resolve.py
+        run: python resolve.py "$DOMAIN"
+
+      - name: Commit and push results
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add ipv4result.txt ipv6result.txt
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update DNS resolve results [skip ci]"
+            git push
+          fi
